@@ -1,23 +1,40 @@
 import numpy as np
 from typing import Callable
+from core.pyannote import Audio
 
 
 class Pipeline:
 
     def __init__(
             self, 
+            name: str,
             embedding_fn: Callable, 
-            distance_fn: Callable,
+            similarity_fn: Callable,
+            batch: bool = False,
         ):
+        self.name = name
+        self.batch = batch
         self.embedding_fn = embedding_fn
-        self.distance_fn = distance_fn
+        self.similarity_fn = similarity_fn
 
     def __call__(
             self, 
-            audio_1: np.ndarray, 
-            audio_2: np.ndarray,
+            audio1: Audio, 
+            audio2: Audio,
         ) -> float:
-        emb_1 = self.embedding_fn(audio_1)
-        emb_2 = self.embedding_fn(audio_2)
-        return self.distance_fn(emb_1, emb_2)
+        if self.batch:
+            emb1, emb2 = self.embedding_fn(audio1, audio2)
+        else:
+            emb1 = self.embedding_fn(audio1)
+            emb2 = self.embedding_fn(audio2)
+        return self.similarity_fn(emb1, emb2)
 
+
+if __name__ == "__main__":
+    from core.pyannote import Pyannote, cosine_similarity
+
+    audio1 = Audio("dataset/1-Zelenskyi/audio01.wav")
+    audio2 = Audio("dataset/2-Sadovyi/audio01.wav")
+
+    pipeline = Pipeline(Pyannote(), cosine_similarity)
+    print(pipeline(audio1, audio2))
