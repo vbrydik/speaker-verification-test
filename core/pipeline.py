@@ -27,7 +27,10 @@ class Pipeline:
         else:
             emb1 = self.embedding_fn(audio1)
             emb2 = self.embedding_fn(audio2)
-        return self.similarity_fn(emb1, emb2)
+        similarity = self.similarity_fn(emb1, emb2)
+        if isinstance(similarity, np.ndarray):
+            similarity = similarity.mean()
+        return similarity
 
 
 if __name__ == "__main__":

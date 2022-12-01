@@ -1,6 +1,7 @@
 venv/
 __pycache__/
 dataset/
+pretrained_models/
 *.pyo
 *.pyc
 Pipfile
