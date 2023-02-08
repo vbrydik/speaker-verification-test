@@ -1,4 +1,3 @@
-import numpy as np
 from typing import Callable
 from core.pyannote import Audio
 
@@ -9,27 +8,24 @@ class Pipeline:
             self, 
             name: str,
             embedding_fn: Callable, 
-            similarity_fn: Callable,
-            batch: bool = False,
+            score_fn: Callable,
         ):
         self.name = name
-        self.batch = batch
         self.embedding_fn = embedding_fn
-        self.similarity_fn = similarity_fn
+        self.score_fn = score_fn
 
     def __call__(
             self, 
-            audio1: Audio, 
-            audio2: Audio,
+            audio1: Audio or str, 
+            audio2: Audio or str,
         ) -> float:
-        if self.batch:
-            emb1, emb2 = self.embedding_fn(audio1, audio2)
-        else:
-            emb1 = self.embedding_fn(audio1)
-            emb2 = self.embedding_fn(audio2)
-        similarity = self.similarity_fn(emb1, emb2)
-        if isinstance(similarity, np.ndarray):
-            similarity = similarity.mean()
+        if isinstance(audio1, str):
+            audio1 = Audio(audio1)
+        if isinstance(audio2, str):
+            audio2 = Audio(audio2)
+        emb1 = self.embedding_fn(audio1)
+        emb2 = self.embedding_fn(audio2)
+        similarity = self.score_fn(emb1, emb2)
         return similarity
 
 

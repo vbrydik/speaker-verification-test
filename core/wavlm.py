@@ -41,31 +41,19 @@ class WavLM:
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)
         self.model = WavLMForXVector.from_pretrained(model_path).to(self.device)
 
-    def __call__(self, audio1: Audio, audio2: Audio = None):
-        use_batch = audio2 is not None
+    def __call__(self, audio: Audio):
 
-        if use_batch:
-            inputs = self.feature_extractor(
-                [audio1.mono, audio2.mono], 
-                sampling_rate=16000, #audio.sample_rate, 
-                padding=True, 
-                return_tensors="pt",
-            )
-        else:
-            inputs = self.feature_extractor(
-                [audio1.mono], 
-                sampling_rate=16000, #audio.sample_rate, 
-                padding=True, 
-                return_tensors="pt",
-            )
+        inputs = self.feature_extractor(
+            [audio.mono], 
+            sampling_rate=16000,  # audio.sample_rate, 
+            padding=True, 
+            return_tensors="pt",
+        )
 
         embeddings = self.model(**inputs.to(self.device)).embeddings
-        embeddings = torch.nn.functional.normalize(embeddings, dim=-1).cpu().detach()
+        # embeddings = torch.nn.functional.normalize(embeddings, dim=-1).cpu().detach()
 
-        if use_batch:
-            return embeddings[0], embeddings[1]
-        else:
-            return embeddings[0]
+        return embeddings[0]
 
 
 if __name__ == "__main__":

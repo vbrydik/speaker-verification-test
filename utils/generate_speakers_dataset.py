@@ -1,5 +1,6 @@
 import random
 import itertools
+from typing import List, Tuple
 
 
 def one_speaker_pairs(x: list):
@@ -35,3 +36,28 @@ def generate_speakers_dataset(speaker_to_samples_dict: dict):
 
     return speaker_to_subset_dict
 
+
+def generate_speakers_file_pairs(speaker_to_samples_dict: dict) -> List[Tuple[str, str]]:
+    pairs = []
+
+    for k, v in speaker_to_samples_dict.items():
+        
+        # Get pairs of same speakers
+        same_speaker_pairs = one_speaker_pairs(v)
+
+        # Get pairs of different speakers, but the same number as the same speakers
+        diff_speaker_pairs = []
+        for _k, _v in speaker_to_samples_dict.items():
+            if _k == k:
+                continue
+            diff_speaker_pairs += _v
+        
+        _target = random.choices(v, k=len(same_speaker_pairs))
+        _other = random.choices(diff_speaker_pairs, k=len(same_speaker_pairs))
+        diff_speaker_pairs = list(zip(_target, _other))
+
+        # Extend pairs
+        pairs.extend(same_speaker_pairs)
+        pairs.extend(diff_speaker_pairs)
+
+    return pairs
