@@ -65,7 +65,8 @@ def compute_eer(scores: Union[np.ndarray, List[float]],
     result.fr = fr_rate
     result.fa = fa_rate
 
-    return result
+    # return result
+    return result.eer, result.thresh, result.fr, result.fa
 
 
 def compute_min_dcf(fr_rate, fa_rate, p_target=0.05, c_miss=1.0, c_fa=1.0):
