@@ -44,14 +44,13 @@ class WavLM:
     def __call__(self, audio: Audio):
 
         inputs = self.feature_extractor(
-            [audio.mono], 
-            sampling_rate=16000,  # audio.sample_rate, 
+            [audio.wave], 
+            sampling_rate=audio.sample_rate, 
             padding=True, 
             return_tensors="pt",
         )
 
         embeddings = self.model(**inputs.to(self.device)).embeddings
-        # embeddings = torch.nn.functional.normalize(embeddings, dim=-1).cpu().detach()
 
         return embeddings[0]
 

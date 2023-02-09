@@ -18,6 +18,7 @@ from collections import namedtuple
 from typing import List, Tuple, Union
 
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 
 def compute_eer(scores: Union[np.ndarray, List[float]],
@@ -88,3 +89,11 @@ def compute_min_dcf(fr_rate, fa_rate, p_target=0.05, c_miss=1.0, c_fa=1.0):
     c_def = min(c_miss * p_target, c_fa * (1 - p_target))
     min_cdf = c_det / c_def
     return min_cdf
+
+
+def compute_far_frr(scores, labels, threshold):
+    predictions = [int(s >= threshold) for s in scores]
+    tn, fp, fn, tp = confusion_matrix(labels, predictions).ravel()
+    far = fp / (fp + tn)
+    frr = fn / (fn + tp)
+    return far, frr

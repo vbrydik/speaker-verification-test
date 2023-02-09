@@ -11,6 +11,7 @@ from core import (
 from core.metrics import (
     compute_eer, 
     compute_min_dcf,
+    compute_far_frr,
 )
 from utils import make_dataset
 
@@ -41,15 +42,12 @@ def evaluate_pipeline(
 
     ee_rate, thresh, fa_rate, fr_rate = compute_eer(scores, labels)
     min_dcf = compute_min_dcf(fr_rate, fa_rate)
-
-    # TODO: Calculate fa_rate and fr_cate using the confusion matrix
-    #       and the threshold that we got from the compute_eer
+    fa_score, fr_score = compute_far_frr(scores, labels, thresh)
 
     result = {
         "pipeline": pipeline.name,
-        # FIXME: Replace these with the relevant metrics
-        # "fa_rate": fa_rate, 
-        # "fr_rate": fr_rate, 
+        "fa_score": fa_score,
+        "fr_score": fr_score,
         "ee_rate": ee_rate,
         "dcf": min_dcf, 
         "threshold": thresh,
@@ -60,8 +58,7 @@ def evaluate_pipeline(
 def main():
 
     dataset = make_dataset("./dataset")
-
-    results = {}
+    print(f"Number of pairs in dataset: {len(dataset)}")
 
     # Define pipelines
     pipelines = [
@@ -71,6 +68,8 @@ def main():
         Pipeline("ecapa", Ecapa()),
         # Pipeline("wavlm-large", WavLM("microsoft/wavlm-large", device="cpu")),
     ]
+
+    results = {}
 
     for pipeline in pipelines:
         print(f"Evaluating pipeline: {pipeline.name}")
