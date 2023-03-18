@@ -32,8 +32,9 @@ if __name__ == "__main__":
     audio1 = Audio("dataset/1-Zelenskyi/audio09.wav") 
     emb1 = model(audio1)
 
-    audio2 = Audio("dataset/2-Sadovyi/audio01.wav")
-    emb2 = model(audio2)
-
-    print(cosine_similarity(emb1, emb2))
+    print("Shape:", emb1.shape)
+    print("Min:", emb1.min())
+    print("Max:", emb1.max())
+    print("AVG:", emb1.mean())
+    print("STD:", emb1.std())
 

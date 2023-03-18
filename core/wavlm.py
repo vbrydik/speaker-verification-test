@@ -41,44 +41,28 @@ class WavLM:
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)
         self.model = WavLMForXVector.from_pretrained(model_path).to(self.device)
 
-    def __call__(self, audio1: Audio, audio2: Audio = None):
-        use_batch = audio2 is not None
+    def __call__(self, audio: Audio):
 
-        if use_batch:
-            inputs = self.feature_extractor(
-                [audio1.mono, audio2.mono], 
-                sampling_rate=16000, #audio.sample_rate, 
-                padding=True, 
-                return_tensors="pt",
-            )
-        else:
-            inputs = self.feature_extractor(
-                [audio1.mono], 
-                sampling_rate=16000, #audio.sample_rate, 
-                padding=True, 
-                return_tensors="pt",
-            )
+        inputs = self.feature_extractor(
+            [audio.wave], 
+            sampling_rate=audio.sample_rate, 
+            padding=True, 
+            return_tensors="pt",
+        )
 
         embeddings = self.model(**inputs.to(self.device)).embeddings
-        embeddings = torch.nn.functional.normalize(embeddings, dim=-1).cpu().detach()
 
-        if use_batch:
-            return embeddings[0], embeddings[1]
-        else:
-            return embeddings[0]
+        return embeddings[0]
 
 
 if __name__ == "__main__":
-    from core.cosine_similarity import cosine_similarity
     model = WavLM()
 
     audio1 = Audio("dataset/1-Zelenskyi/audio09.wav") 
     emb1 = model(audio1)
 
-    audio2 = Audio("dataset/2-Sadovyi/audio01.wav")
-    emb2 = model(audio2)
-
-    print(cosine_similarity(emb1, emb2))
-
-
-
+    print("Shape:", emb1.shape)
+    print("Min:", emb1.min())
+    print("Max:", emb1.max())
+    print("AVG:", emb1.mean())
+    print("STD:", emb1.std())

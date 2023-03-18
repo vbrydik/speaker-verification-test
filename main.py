@@ -1,90 +1,84 @@
-import os
-import glob
-
 import tqdm
 import pandas as pd
-from sklearn.metrics import accuracy_score, confusion_matrix
 
-from core.audio import Audio
-from core.pipeline import Pipeline
-from core.pyannote import Pyannote
-from core.wavlm import WavLM
-from core.titanet import TitaNet
-from core.ecapa import Ecapa
-from core.cosine_similarity import cosine_similarity
-from utils.generate_speakers_dataset import generate_speakers_dataset
+from core import (
+    Pipeline,
+    Pyannote,
+    WavLM,
+    TitaNet,
+    Ecapa
+)
+from core.metrics import (
+    compute_eer, 
+    compute_min_dcf,
+    compute_far_frr,
+)
+from utils import make_dataset
 
 
-def far_frr_scores(y_true, y_pred):
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
-    far = fp / (fp + tn)
-    frr = fn / (fn + tp)
-    return far, frr
+def get_label(file1: str, file2: str) -> int:
+    """
+    Return 0 if different speakers, 1 if same speakers.
+    """
+    def _get_name(x):
+        return x.split("/")[-2]
+
+    return int(_get_name(file1) == _get_name(file2))
 
 
 def evaluate_pipeline(
     pipeline, 
-    speakers_datasets, 
-    threshold: float = 0.5
+    data, 
 ) -> pd.DataFrame:
 
-    # Create table
-    scores_df = pd.DataFrame(columns=["pipeline", "speaker", "far", "frr", "accuracy", "threshold"])
+    scores = []
+    labels = []
 
-    for speaker, data in tqdm.tqdm(speakers_datasets.items(), total=len(speakers_datasets)):
-        # Make predictions
-        y_true = [label for _, label in data]
-        y_pred = []
-        for pair, _ in tqdm.tqdm(data, total=len(data)):
-            similarity = pipeline(*(Audio(a) for a in pair))
-            y_pred.append(int(similarity > threshold))
-        # Calculate metrics
-        far_score, frr_score = far_frr_scores(y_true, y_pred)
-        accuracy = accuracy_score(y_true, y_pred)
-        # Update table
-        row = {
-            "pipeline": pipeline.name,
-            "speaker": speaker, 
-            "far": far_score, 
-            "frr": frr_score, 
-            "accuracy": accuracy, 
-            "threshold": threshold,
-        }
-        scores_df = scores_df.append(row, ignore_index=True)
-    
-    return scores_df
+    for file1, file2 in tqdm.tqdm(data, total=len(data)):
+        similarity = pipeline(file1, file2)
+        label = get_label(file1, file2)
+        scores.append(similarity)
+        labels.append(label)
+
+    ee_rate, thresh, fa_rate, fr_rate = compute_eer(scores, labels)
+    min_dcf = compute_min_dcf(fr_rate, fa_rate)
+    fa_score, fr_score = compute_far_frr(scores, labels, thresh)
+
+    result = {
+        "pipeline": pipeline.name,
+        "fa_score": fa_score,
+        "fr_score": fr_score,
+        "ee_rate": ee_rate,
+        "dcf": min_dcf, 
+        "threshold": thresh,
+    }
+    return result
 
 
 def main():
-    # Get speaker to samples map
-    dataset_dir = "./dataset"
-    speakers = glob.glob(os.path.join(dataset_dir, "*"))
-    speakers = speakers[:2]
-    speaker_to_samples_dict = { s: glob.glob(os.path.join(s, "*.wav")) for s in speakers }
 
-    # Generate datasets for evaluation for each speaker
-    speakers_datasets = generate_speakers_dataset(speaker_to_samples_dict)
-
-    total_df = pd.DataFrame()
+    dataset = make_dataset("./dataset")
+    print(f"Number of pairs in dataset: {len(dataset)}")
 
     # Define pipelines
     pipelines = [
-        Pipeline("pyannote", Pyannote(), cosine_similarity),
-        Pipeline("wavlm-base", WavLM(device="cuda"), cosine_similarity),
-        # Pipeline("wavlm-large", WavLM("microsoft/wavlm-large", device="cpu"), cosine_similarity, batch=True),
-        Pipeline("titanet", TitaNet(), cosine_similarity),
-        Pipeline("ecapa", Ecapa(), cosine_similarity),
+        Pipeline("pyannote", Pyannote()),
+        Pipeline("wavlm-base", WavLM(device="cuda")),
+        Pipeline("titanet", TitaNet()),
+        Pipeline("ecapa", Ecapa()),
+        # Pipeline("wavlm-large", WavLM("microsoft/wavlm-large", device="cpu")),
     ]
-    threshold = 0.5
+
+    results = {}
 
     for pipeline in pipelines:
         print(f"Evaluating pipeline: {pipeline.name}")
-        pipe_scores_df = evaluate_pipeline(pipeline, speakers_datasets, threshold)
-        pipe_scores_df.to_csv(f"{pipeline.name}_scores.csv", index=False)
-
-        total_df = pd.concat([total_df, pipe_scores_df], axis=0, ignore_index=True)
+        results[pipeline.name] = evaluate_pipeline(pipeline, dataset)
     
-    total_df.to_csv("all_scores.csv", index=False)
+    # Store resutls in a csv file
+    pd.DataFrame(results).transpose().to_csv("scores.csv")
+
+    print("Done!")
 
 
 if __name__ == "__main__":
