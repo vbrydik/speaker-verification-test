@@ -20,7 +20,7 @@
 #     print("Speakers are not the same!")
 
 import torch
-from transformers import Wav2Vec2FeatureExtractor, WavLMForXVector
+from transformers import Wav2Vec2FeatureExtractor, WavLMForXVector, WavLMForAudioFrameClassification
 
 from core.audio import Audio
 
@@ -37,7 +37,7 @@ class WavLM:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         if device is not None:
             self.device = device
-
+            
         self.feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)
         self.model = WavLMForXVector.from_pretrained(model_path).to(self.device)
 
@@ -49,7 +49,7 @@ class WavLM:
             padding=True, 
             return_tensors="pt",
         )
-
+        
         embeddings = self.model(**inputs.to(self.device)).embeddings
 
         return embeddings[0]
