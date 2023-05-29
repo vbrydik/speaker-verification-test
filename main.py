@@ -83,6 +83,8 @@ def evaluate_pipeline(
 def make_visualization(
     pipelines,
     dataset,
+    speakers=None,
+    markers=None,
 ):
     classes = {}
     for file1, file2 in dataset:
@@ -94,10 +96,20 @@ def make_visualization(
                 classes[name].append(file1)
     
     # Limit number of classes
-    selected_classes_str = [f"{i}-" for i in range(1, 11)]
+    if speakers is None:
+        selected_classes_str = [f"{i}-" for i in range(1, 11)]
+    else:
+        selected_classes_str = speakers
     classes = {k: v for k, v in classes.items() if any([k.startswith(s) for s in selected_classes_str])}
+    speaker_to_marker_map = dict(zip(speakers, markers))
     
-    for pipeline in pipelines:
+    
+    fig, axs = plt.subplots(3, 2, sharex=True, sharey=True, figsize=(8, 12))
+    
+    for i, pipeline in enumerate(pipelines):
+        
+        ax_x, ax_y = i // 2, i % 2
+        ax = axs[ax_x, ax_y]
         
         class_embeddings = {}
         
@@ -111,10 +123,10 @@ def make_visualization(
             
         all_embeddings = [emb for embs in class_embeddings.values() for emb in embs]
 
-        plt.clf()
-        plt.cla()
-        
-        plt.title(pipeline.name)
+#         plt.clf()
+#         plt.cla()
+#         plt.title(pipeline.name)
+        ax.set_title(pipeline.name)
 
         pca = PCA(n_components=2).fit(all_embeddings)
         
@@ -122,12 +134,17 @@ def make_visualization(
             decomp_embs = pca.transform(embs)
             _x = decomp_embs[:, 0]
             _y = decomp_embs[:, 1]
-            plt.scatter(_x, _y, label=speaker)
+            _m = speaker_to_marker_map[speaker]
+            # plt.scatter(_x, _y, c='k', marker=_m, label=speaker)
+            ax.scatter(_x, _y, c='k', marker=_m, label=speaker)
+            
+        handles, labels = ax.get_legend_handles_labels()
+        # os.makedirs("plots", exist_ok=True)
+        # plt.savefig(f"plots/{pipeline.name}.png")
         
-        plt.legend()
-        
-        os.makedirs("plots", exist_ok=True)
-        plt.savefig(f"plots/{pipeline.name}.png")
+    os.makedirs("plots", exist_ok=True) 
+    plt.legend(handles, labels)
+    plt.savefig(f"plots/total.png")
 
 
 def main():
@@ -150,7 +167,7 @@ def main():
     pipelines = [
         Pipeline("pyannote", Pyannote()),
         # Pipeline("wavlm-base", WavLM(device="cuda")),
-        # Pipeline("wavlm-base-plus", WavLM("microsoft/wavlm-base-plus-sv", device="cuda")),
+        # Pipeline("wavlm-base-plus", WavLM("microsoft/wavlm-base-plus", device="cuda")),
         Pipeline("wavlm-base-sv", WavLM("microsoft/wavlm-base-sv", device="cuda")),
         Pipeline("wavlm-base-plus-sv", WavLM("microsoft/wavlm-base-plus-sv", device="cuda")),
         Pipeline("titanet", TitaNet()),
@@ -167,7 +184,21 @@ def main():
     pd.DataFrame(results).transpose().to_csv("scores.csv")
 
     # Make visualizations
-    make_visualization(pipelines, dataset)
+    speakers = [
+        '1-Zelenskyi',
+        '2-Sadovyi',
+        '9-Vereshchuk',
+        '10-Kuleba',
+        '25-Ustinova',
+    ]
+    markers = [
+        'o',
+        'x',
+        's',
+        '+',
+        '^',
+    ]
+    make_visualization(pipelines, dataset, speakers=speakers, markers=markers)
         
     print("Done!")
 

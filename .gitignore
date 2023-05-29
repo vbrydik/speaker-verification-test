@@ -4,5 +4,6 @@ dataset/
 pretrained_models/
 *.pyo
 *.pyc
+*.zip
 Pipfile
-
+.ipynb_checkpoints/
