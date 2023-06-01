@@ -85,6 +85,7 @@ def make_visualization(
     dataset,
     speakers=None,
     markers=None,
+    colors=None,
 ):
     classes = {}
     for file1, file2 in dataset:
@@ -102,9 +103,10 @@ def make_visualization(
         selected_classes_str = speakers
     classes = {k: v for k, v in classes.items() if any([k.startswith(s) for s in selected_classes_str])}
     speaker_to_marker_map = dict(zip(speakers, markers))
-    
+    speaker_to_color_map = dict(zip(speakers, colors))
     
     fig, axs = plt.subplots(3, 2, sharex=True, sharey=True, figsize=(8, 12))
+    fig.delaxes(axs[2, 1])
     
     for i, pipeline in enumerate(pipelines):
         
@@ -113,7 +115,7 @@ def make_visualization(
         
         class_embeddings = {}
         
-        for speaker, files in tqdm.tqdm(classes.items(), desc=f"Visualising {pipeline.name}..."):
+        for speaker, files in tqdm.tqdm(classes.items(), desc=f"Visualising {pipeline.name}"):
             
             class_embeddings[speaker] = []
             
@@ -123,11 +125,10 @@ def make_visualization(
             
         all_embeddings = [emb for embs in class_embeddings.values() for emb in embs]
 
-#         plt.clf()
-#         plt.cla()
-#         plt.title(pipeline.name)
         ax.set_title(pipeline.name)
-
+        ax.set_yticklabels([])
+        ax.set_xticklabels([])
+    
         pca = PCA(n_components=2).fit(all_embeddings)
         
         for speaker, embs in class_embeddings.items():
@@ -135,15 +136,16 @@ def make_visualization(
             _x = decomp_embs[:, 0]
             _y = decomp_embs[:, 1]
             _m = speaker_to_marker_map[speaker]
-            # plt.scatter(_x, _y, c='k', marker=_m, label=speaker)
-            ax.scatter(_x, _y, c='k', marker=_m, label=speaker)
-            
+            _c = speaker_to_color_map[speaker]
+            ax.scatter(_x, _y, c=_c, marker=_m, label=speaker)
+        
         handles, labels = ax.get_legend_handles_labels()
-        # os.makedirs("plots", exist_ok=True)
-        # plt.savefig(f"plots/{pipeline.name}.png")
+        
+        extent = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(f'plots/{pipeline.name}.png', bbox_inches=extent.expanded(1.2, 1.2))
         
     os.makedirs("plots", exist_ok=True) 
-    plt.legend(handles, labels)
+    fig.legend(handles, labels, ncol=len(speakers), loc='lower center')
     plt.savefig(f"plots/total.png")
 
 
@@ -198,7 +200,14 @@ def main():
         '+',
         '^',
     ]
-    make_visualization(pipelines, dataset, speakers=speakers, markers=markers)
+    colors = [
+        'r',
+        'g',
+        'b',
+        'm',
+        'c',
+    ]
+    make_visualization(pipelines, dataset, speakers=speakers, markers=markers, colors=colors)
         
     print("Done!")
 
