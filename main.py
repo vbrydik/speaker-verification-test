@@ -1,5 +1,6 @@
 import os
 import tqdm
+import timeit
 import numpy as np
 import pandas as pd
 import pickle as pkl
@@ -43,9 +44,14 @@ def evaluate_pipeline(
     labels = []
     distance_self = []
     distance_other = []
+    elapsed_time = []
 
     for file1, file2 in tqdm.tqdm(data, total=len(data)):
+        
+        _st = timeit.default_timer()
         similarity, distance = pipeline(file1, file2)
+        elapsed_time.append(timeit.default_timer() - _st)
+        
         label = get_label(file1, file2)
         scores.append(similarity)
         labels.append(label)
@@ -63,6 +69,7 @@ def evaluate_pipeline(
 
     dist_self_mean, dist_self_std = np.mean(distance_self), np.std(distance_self)
     dist_other_mean, dist_other_std = np.mean(distance_other), np.std(distance_other)
+    elapsed_time_mean, elapsed_time_std = np.mean(elapsed_time), np.std(elapsed_time)
     
     result = {
         "pipeline": pipeline.name,
@@ -76,6 +83,8 @@ def evaluate_pipeline(
         "distance_self_std": dist_self_std,
         "distance_other_mean": dist_other_mean,
         "distance_other_std": dist_other_std,
+        "elapsed_time_mean": elapsed_time_mean,
+        "elapsed_time_std": elapsed_time_std,
     }
     return result
 

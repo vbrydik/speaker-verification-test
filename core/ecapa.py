@@ -7,7 +7,7 @@ from core.audio import Audio
 class Ecapa:
 
     def __init__(self):
-        self.model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
+        self.model = EncoderClassifier.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb", run_opts={"device":"cuda"})
     
     def __call__(self, audio: Audio):
         signal, fs = torchaudio.load(audio.path)

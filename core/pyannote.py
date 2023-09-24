@@ -13,7 +13,7 @@ def _get_model():
         "pyannote/embedding",
         use_auth_token="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"
     )
-    inference = Inference(model, window="whole")
+    inference = Inference(model, window="whole", device="cuda")
     return inference
 
 

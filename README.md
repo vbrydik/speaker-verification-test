@@ -1,6 +1,6 @@
 # speaker-verification-test
 
-Tested on Ubuntu 20.04, Python 3.8.15 with RTX A4500 GPU.
+Tested on Ubuntu 20.04, Python 3.10.6 with RTX A4500 GPU.
 
 ## Experiment reproducibility
 
